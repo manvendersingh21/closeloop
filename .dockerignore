@@ -1,0 +1,16 @@
+.env
+.env*
+**/.env*
+node_modules
+**/node_modules
+.next
+.git
+.github
+.closeloop-data
+coverage
+*.tsbuildinfo
+next-env.d.ts
+*.pem
+.DS_Store
+npm-debug.log*
+.pnpm-debug.log*

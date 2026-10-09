@@ -38,7 +38,39 @@ export interface ExecutionReport {
   exploitBefore: ReplayOutcome;
   exploitAfter: ReplayOutcome;
   error: string | null;
+  /** Set when a verified fix was shipped as a pull request. */
+  prUrl?: string | null;
+  /** Guild session link of the independent review, for the audit trail. */
+  reviewSessionUrl?: string | null;
 }
+
+/** Independent AI review of a proposal (a Guild-hosted agent) before anything is applied. */
+export interface ReviewVerdict {
+  /** "unavailable" = reviewer down or timed out; the deterministic gate still decides. */
+  decision: "approve" | "reject" | "unavailable";
+  reasons: string[];
+  sessionUrl: string | null;
+}
+
+export type ReviewProposal = (
+  handoff: ExploitHandoffV1,
+  proposal: PatchProposal,
+  jobId: string,
+) => Promise<ReviewVerdict>;
+
+/** Ships a verified fix (pull request with the policy diff and evidence). Never throws. */
+export interface ShipResult {
+  prUrl: string | null;
+  error: string | null;
+}
+
+export type ShipFix = (input: {
+  handoff: ExploitHandoffV1;
+  proposal: PatchProposal;
+  report: ExecutionReport;
+  jobId: string;
+  review: ReviewVerdict | null;
+}) => Promise<ShipResult>;
 
 /** Implemented by A2 in src/lib/remediate/executor.ts; called by A1's orchestrator. */
 export type ExecuteAndVerify = (

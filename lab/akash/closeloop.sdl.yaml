@@ -1,0 +1,55 @@
+---
+# CloseLoop app on Akash (Next.js standalone, port 3000 exposed as 80).
+# Template only: never commit real values. Fill with
+#   node scripts/render-sdl.mjs lab/akash/closeloop.sdl.yaml /tmp/closeloop.sdl.yaml
+# and deploy the rendered copy (it lives outside the repo).
+version: "2.0"
+
+services:
+  closeloop:
+    image: ghcr.io/manvendersingh21/closeloop:latest
+    env:
+      - "OPENAI_API_KEY=<OPENAI_API_KEY>"
+      - "CLICKHOUSE_URL=<CLICKHOUSE_URL>"
+      - "CLICKHOUSE_USER=<CLICKHOUSE_USER>"
+      - "CLICKHOUSE_PASSWORD=<CLICKHOUSE_PASSWORD>"
+      - "CLICKHOUSE_DATABASE=<CLICKHOUSE_DATABASE>"
+      - "CLOSELOOP_INGEST_TOKEN=<CLOSELOOP_INGEST_TOKEN>"
+      - "AKASH_CONSOLE_API_KEY=<AKASH_CONSOLE_API_KEY>"
+      - "AKASH_LAB_DSEQ=<AKASH_LAB_DSEQ>"
+      - "LAB_BASE_URL=<LAB_BASE_URL>"
+      - "LAB_WORKLOAD_TOKEN=<LAB_WORKLOAD_TOKEN>"
+      - "GUILD_AI_API_KEY=<GUILD_AI_API_KEY>"
+      - "GUILD_OWNER=<GUILD_OWNER>"
+      - "GUILD_WORKSPACE=<GUILD_WORKSPACE>"
+      - "GUILD_REVIEWER_AGENT=<GUILD_REVIEWER_AGENT>"
+      - "GITHUB_TOKEN=<GITHUB_TOKEN>"
+      - "CLOSELOOP_PR_REPO=<CLOSELOOP_PR_REPO>"
+    expose:
+      - port: 3000
+        as: 80
+        to:
+          - global: true
+
+profiles:
+  compute:
+    closeloop:
+      resources:
+        cpu:
+          units: 1
+        memory:
+          size: 2Gi
+        storage:
+          - size: 4Gi
+  placement:
+    dcloud:
+      pricing:
+        closeloop:
+          denom: uact
+          amount: 10000
+
+deployment:
+  closeloop:
+    dcloud:
+      profile: closeloop
+      count: 1

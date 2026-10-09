@@ -31,7 +31,7 @@ profiles:
     dcloud:
       pricing:
         lab-api:
-          denom: uakt
+          denom: uact
           amount: 10000
 
 deployment:

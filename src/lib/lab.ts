@@ -47,14 +47,18 @@ export interface LabTarget {
   token: string;
 }
 
-/** Hand-off `akash` block first, env vars as fallback. The workload token only ever comes from env. */
+/** Server env first, hand-off `akash` block as fallback. The workload token only ever comes from env. */
 export function resolveLabTarget(h: ExploitHandoffV1): LabTarget {
   const token = process.env.LAB_WORKLOAD_TOKEN;
-  const dseq = h.akash?.dseq ?? process.env.AKASH_LAB_DSEQ;
-  const baseUrl = h.akash?.base_url ?? process.env.LAB_BASE_URL;
+  // Server config wins: a hand-off may never point the workload token at another host.
+  const dseq = process.env.AKASH_LAB_DSEQ ?? h.akash?.dseq;
+  const baseUrl = process.env.LAB_BASE_URL ?? h.akash?.base_url;
   if (!token) throw new Error("LAB_WORKLOAD_TOKEN is not set");
-  if (!dseq) throw new Error("no Akash dseq: set handoff.akash.dseq or AKASH_LAB_DSEQ");
-  if (!baseUrl) throw new Error("no lab URL: set handoff.akash.base_url or LAB_BASE_URL");
+  if (!dseq) throw new Error("no Akash dseq: set AKASH_LAB_DSEQ or handoff.akash.dseq");
+  if (!baseUrl) throw new Error("no lab URL: set LAB_BASE_URL or handoff.akash.base_url");
+  if (h.akash && (h.akash.dseq !== dseq || new URL(h.akash.base_url).host !== new URL(baseUrl).host)) {
+    throw new Error("hand-off names a different Akash deployment than the configured lab");
+  }
   return {
     dseq,
     service: h.akash?.service ?? process.env.AKASH_LAB_SERVICE ?? "lab-api",

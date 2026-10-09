@@ -137,6 +137,7 @@ export async function runJob(job: JobRecord, h: ExploitHandoffV1, deps: Orchestr
       stage: "done",
       exploit_before: report.exploitBefore,
       exploit_after: report.exploitAfter,
+      pr_url: report.prUrl ?? null,
       error: report.error,
       finished_at: new Date().toISOString(),
     });

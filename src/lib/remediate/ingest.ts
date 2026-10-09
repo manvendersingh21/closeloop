@@ -63,8 +63,17 @@ export async function ingestHandoff(
   }
   const h = parsed.data;
 
-  const lab = labAccountId();
-  if (!lab) return { status: 500, body: { error: "LAB_AWS_ACCOUNT_ID is not configured" } };
+  if (h.akash) {
+    // Akash lab: the hand-off must name exactly the deployment and host this server is configured for.
+    const dseq = process.env.AKASH_LAB_DSEQ;
+    const base = process.env.LAB_BASE_URL;
+    if (!dseq || !base) return { status: 500, body: { error: "AKASH_LAB_DSEQ / LAB_BASE_URL are not configured" } };
+    if (h.akash.dseq !== dseq || new URL(h.akash.base_url).host !== new URL(base).host) {
+      return { status: 403, body: { error: "out of scope: Akash deployment or host is not the configured lab" } };
+    }
+  } else {
+    const lab = labAccountId();
+    if (!lab) return { status: 500, body: { error: "LAB_AWS_ACCOUNT_ID is not configured" } };
   if (h.scope.aws_account_id !== lab) {
     return { status: 403, body: { error: `out of scope: account ${h.scope.aws_account_id} is not the lab account` } };
   }
@@ -75,6 +84,7 @@ export async function ingestHandoff(
     arnAccount(h.exploit.replay.assume_role_arn) !== lab
   ) {
     return { status: 403, body: { error: "out of scope: target role is not in the lab account or does not match role_name" } };
+  }
   }
 
   const fingerprint = stableStringify(h);

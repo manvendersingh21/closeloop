@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export function Hero({ onStart }: { onStart: () => void }) {
   return (
     <section className="relative isolate min-h-[100svh] overflow-hidden">
@@ -73,6 +75,14 @@ export function Hero({ onStart }: { onStart: () => void }) {
           strokeLinecap="round"
         />
       </svg>
+
+      <Link
+        href="/jobs"
+        className="mono absolute right-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-white/70 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-[var(--action-deep)] backdrop-blur transition hover:bg-white md:right-6 md:top-6"
+      >
+        <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--warn)]" />
+        Live jobs
+      </Link>
 
       <div className="relative z-10 mx-auto flex min-h-[100svh] w-full max-w-5xl flex-col items-center justify-center px-6 pb-28 pt-16 text-center">
         <p className="eyebrow animate-hero-rise">Verified autonomous remediation</p>
