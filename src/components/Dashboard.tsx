@@ -67,6 +67,8 @@ export function Dashboard() {
   }, [selectedId]);
 
   useEffect(() => {
+    // Initial fetch of findings + history for the workspace.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount bootstrap
     void load();
   }, [load]);
 

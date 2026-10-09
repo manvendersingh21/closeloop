@@ -36,7 +36,7 @@ export async function createAndRunRemediation(
 
   const delay = opts?.delayMs ?? 350;
   const now = new Date().toISOString();
-  let job: RemediationJob = {
+  const job: RemediationJob = {
     id: randomUUID(),
     findingId,
     status: "pending",

@@ -9,7 +9,7 @@ import type {
   PolicyDocument,
   ReviewVerdict,
 } from "@/contracts/internal";
-import { createShipper } from "./ship";
+import { applyPolicyToSdl, createShipper, labPolicyJson } from "./ship";
 
 const TOKEN = "ghp_test-token";
 const REPO = "acme/infra";
@@ -17,6 +17,13 @@ const ENV = { GITHUB_TOKEN: TOKEN, CLOSELOOP_PR_REPO: REPO };
 const API = "https://api.github.com";
 const BRANCH = "closeloop/find-002-job-42";
 const PR_URL = "https://github.com/acme/infra/pull/7";
+const SDL_PATH = "lab/akash/lab-api.sdl.yaml";
+const BASELINE_SDL = `services:
+  lab-api:
+    env:
+      - WORKLOAD_TOKEN=<WORKLOAD_TOKEN>
+      - 'POLICY_JSON={"statements":[{"sid":"BroadRead","effect":"allow","actions":["data:read"],"resources":["*"]}]}'
+`;
 
 const handoff = ExploitHandoffV1.parse(
   JSON.parse(readFileSync(path.join(__dirname, "../../../contracts/examples/FIND-002.akash.handoff.json"), "utf8")),
@@ -91,6 +98,12 @@ function happyRoute(call: Recorded): Reply {
   const { method, url } = call;
   if (method === "GET" && url === `${API}/repos/${REPO}/git/ref/heads/main`) return { status: 200, json: { object: { sha: "sha-base" } } };
   if (method === "POST" && url === `${API}/repos/${REPO}/git/refs`) return { status: 201, json: {} };
+  if (method === "GET" && url.includes(`/contents/${SDL_PATH}`)) {
+    return {
+      status: 200,
+      json: { sha: "sha-sdl", content: Buffer.from(BASELINE_SDL, "utf8").toString("base64") },
+    };
+  }
   if (method === "GET" && url.includes("/contents/")) return { status: 404, json: { message: "Not Found" } };
   if (method === "PUT" && url.includes("/contents/")) return { status: 201, json: { content: {} } };
   if (method === "POST" && url.endsWith("/pulls")) return { status: 201, json: { html_url: PR_URL } };
@@ -107,6 +120,17 @@ function bodyOf(call: Recorded | undefined): Record<string, unknown> {
 }
 
 const decode = (b64: unknown) => Buffer.from(String(b64), "base64").toString("utf8");
+
+describe("applyPolicyToSdl / labPolicyJson", () => {
+  it("rewrites only the POLICY_JSON env line", () => {
+    const json = labPolicyJson(AFTER);
+    const next = applyPolicyToSdl(BASELINE_SDL, json);
+    expect(next).toContain("WORKLOAD_TOKEN=<WORKLOAD_TOKEN>");
+    expect(next).toContain(`POLICY_JSON=${json}`);
+    expect(next).not.toContain('"resources":["*"]');
+    expect(() => applyPolicyToSdl("no policy here\n", json)).toThrow(/POLICY_JSON/);
+  });
+});
 
 describe("shipFix", () => {
   it("is disabled without any network call when config is missing", async () => {
@@ -128,12 +152,12 @@ describe("shipFix", () => {
     expect(gh.calls).toHaveLength(0);
   });
 
-  it("happy path: base sha → branch → 3 files → PR with the right requests in order", async () => {
+  it("happy path: base sha → branch → 3 files → SDL POLICY_JSON → PR with the right requests in order", async () => {
     const gh = fakeGitHub(happyRoute);
     const r = await createShipper({ fetch: gh.fetch, env: ENV })(input);
     expect(r).toEqual({ prUrl: PR_URL, error: null });
 
-    expect(gh.calls).toHaveLength(9);
+    expect(gh.calls).toHaveLength(11);
     const reqs = gh.calls.map((c) => c.url);
     expect(reqs[0]).toBe(`${API}/repos/${REPO}/git/ref/heads/main`);
     expect(reqs[1]).toBe(`${API}/repos/${REPO}/git/refs`);
@@ -143,7 +167,9 @@ describe("shipFix", () => {
     expect(reqs[5]).toBe(`${API}/repos/${REPO}/contents/remediations/FIND-002/policy.before.json`);
     expect(reqs[6]).toBe(`${API}/repos/${REPO}/contents/remediations/FIND-002/EVIDENCE.md?ref=${encodeURIComponent(BRANCH)}`);
     expect(reqs[7]).toBe(`${API}/repos/${REPO}/contents/remediations/FIND-002/EVIDENCE.md`);
-    expect(reqs[8]).toBe(`${API}/repos/${REPO}/pulls`);
+    expect(reqs[8]).toBe(`${API}/repos/${REPO}/contents/${SDL_PATH}?ref=${encodeURIComponent(BRANCH)}`);
+    expect(reqs[9]).toBe(`${API}/repos/${REPO}/contents/${SDL_PATH}`);
+    expect(reqs[10]).toBe(`${API}/repos/${REPO}/pulls`);
 
     for (const c of gh.calls) {
       expect(c.headers.authorization).toBe(`Bearer ${TOKEN}`);
@@ -179,12 +205,20 @@ describe("shipFix", () => {
     expect(evidence).toContain(review.sessionUrl);
     expect(evidence).toContain("`job-42`");
 
-    const pr = bodyOf(gh.calls[8]);
+    const sdlPut = bodyOf(gh.calls[9]);
+    expect(sdlPut.branch).toBe(BRANCH);
+    expect(sdlPut.sha).toBe("sha-sdl");
+    const sdlText = decode(sdlPut.content);
+    expect(sdlText).toContain("WORKLOAD_TOKEN=<WORKLOAD_TOKEN>");
+    expect(sdlText).toContain(`POLICY_JSON=${labPolicyJson(AFTER)}`);
+
+    const pr = bodyOf(gh.calls[10]);
     expect(pr.title).toBe(`fix(FIND-002): ${handoff.title}`);
     expect(pr.head).toBe(BRANCH);
     expect(pr.base).toBe("main");
     expect(pr.body).toContain("success → blocked");
     expect(pr.body).toContain("2/3");
+    expect(pr.body).toContain(SDL_PATH);
     expect(pr.body).toContain(review.sessionUrl);
     expect(pr.body).toContain("Verified live by CloseLoop before this PR was opened.");
   });

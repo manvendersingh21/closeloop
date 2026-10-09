@@ -1,9 +1,11 @@
 // A2 shipper: open a GitHub pull request that carries the verified policy diff
 // and the live evidence, so a human can review and merge the fix. Never throws.
-import type { CheckResult, ShipFix, ShipResult } from "@/contracts/internal";
+import type { CheckResult, PolicyDocument, ShipFix, ShipResult } from "@/contracts/internal";
+import { toLabPolicy } from "@/lib/lab";
 
 const GITHUB_API = "https://api.github.com";
 const TIMEOUT_MS = 20_000;
+const SDL_PATH = "lab/akash/lab-api.sdl.yaml";
 
 export interface ShipperDeps {
   fetch: typeof fetch;
@@ -73,8 +75,32 @@ function prBody({ proposal, report, review }: ShipInput): string {
   const out: string[] = ["## Summary", "", ...proposal.summary.map((s) => `- ${s}`), ""];
   out.push(`Exploit replay: ${report.exploitBefore} → ${report.exploitAfter} after the fix.`, "");
   out.push(`Checks: ${passed}/${report.checks.length} passed.`);
+  out.push("", `Also updates \`${SDL_PATH}\` \`POLICY_JSON\` to the verified lab policy.`);
   if (review?.sessionUrl) out.push("", `Independent review: ${review.sessionUrl}`);
   out.push("", "Verified live by CloseLoop before this PR was opened.");
+  return out.join("\n");
+}
+
+/** Compact lab POLICY_JSON for the SDL env line (no spaces). */
+export function labPolicyJson(policy: PolicyDocument): string {
+  return JSON.stringify(toLabPolicy(policy));
+}
+
+/**
+ * Replace only the POLICY_JSON=... assignment on its env line.
+ * Leaves WORKLOAD_TOKEN and every other line untouched.
+ */
+export function applyPolicyToSdl(sdl: string, policyJson: string): string {
+  let found = false;
+  const out = sdl.split("\n").map((line) => {
+    const m = line.match(/^(\s*-\s*')POLICY_JSON=.*(')\s*$/);
+    if (!m) return line;
+    found = true;
+    return `${m[1]}POLICY_JSON=${policyJson}${m[2]}`;
+  });
+  if (!found) {
+    throw new Error(`${SDL_PATH}: POLICY_JSON env line not found`);
+  }
   return out.join("\n");
 }
 
@@ -169,6 +195,35 @@ export function createShipper(deps: ShipperDeps): ShipFix {
           },
         });
         if (put.status !== 200 && put.status !== 201) return failure(step, put);
+      }
+
+      // Update only POLICY_JSON in the infra SDL so merge = deployable verified policy.
+      step = `read ${SDL_PATH}`;
+      const sdlRes = await gh(`${api}/contents/${enc(SDL_PATH)}?ref=${encodeURIComponent(branch)}`);
+      if (sdlRes.status !== 200) return failure(step, sdlRes);
+      const sdlSha = typeof sdlRes.json?.sha === "string" ? sdlRes.json.sha : undefined;
+      const encoded = typeof sdlRes.json?.content === "string" ? sdlRes.json.content : "";
+      if (!sdlSha || !encoded) return { prUrl: null, error: `${step}: missing sha or content` };
+      const currentSdl = Buffer.from(encoded.replace(/\n/g, ""), "base64").toString("utf8");
+      let nextSdl: string;
+      try {
+        nextSdl = applyPolicyToSdl(currentSdl, labPolicyJson(proposal.policyAfter));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { prUrl: null, error: `${step}: ${msg}` };
+      }
+      if (nextSdl !== currentSdl) {
+        step = `write ${SDL_PATH}`;
+        const putSdl = await gh(`${api}/contents/${enc(SDL_PATH)}`, {
+          method: "PUT",
+          body: {
+            message: `closeloop: update POLICY_JSON for ${handoff.finding_id} (${jobId})`,
+            content: Buffer.from(nextSdl, "utf8").toString("base64"),
+            branch,
+            sha: sdlSha,
+          },
+        });
+        if (putSdl.status !== 200 && putSdl.status !== 201) return failure(step, putSdl);
       }
 
       step = "open pull request";
