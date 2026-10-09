@@ -1,0 +1,49 @@
+{
+  "schema_version": "remediation-result/v1",
+  "job_id": "job-7f3a9c",
+  "finding_id": "FIND-001",
+  "status": "verified",
+  "stage": "done",
+  "attempts": 2,
+  "change": {
+    "type": "iam_inline_policy",
+    "role_name": "lab-workload-01-role",
+    "policy_name": "workload-app-access",
+    "before": {
+      "Version": "2012-10-17",
+      "Statement": [
+        { "Sid": "BroadS3Read", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": "arn:aws:s3:::*/*" },
+        { "Sid": "OrdersTable", "Effect": "Allow", "Action": ["dynamodb:Query"], "Resource": "arn:aws:dynamodb:us-west-2:111122223333:table/closeloop-lab-orders" }
+      ]
+    },
+    "after": {
+      "Version": "2012-10-17",
+      "Statement": [
+        { "Sid": "AppBucketReadWrite", "Effect": "Allow", "Action": ["s3:GetObject", "s3:PutObject"], "Resource": "arn:aws:s3:::closeloop-lab-app/*" },
+        { "Sid": "OrdersTable", "Effect": "Allow", "Action": ["dynamodb:Query"], "Resource": "arn:aws:dynamodb:us-west-2:111122223333:table/closeloop-lab-orders" }
+      ]
+    },
+    "summary": [
+      "Narrowed BroadS3Read from arn:aws:s3:::*/* to arn:aws:s3:::closeloop-lab-app/* (renamed AppBucketReadWrite)",
+      "Left OrdersTable unchanged"
+    ]
+  },
+  "checks": [
+    { "check_id": "neg-canary-read", "phase": "baseline", "attempt": 1, "expected": "deny", "actual": "allow", "passed": false, "detail": "Exploit reproduced before change" },
+    { "check_id": "pos-app-write", "phase": "simulate", "attempt": 1, "expected": "allow", "actual": "deny", "passed": false, "detail": "First patch dropped s3:PutObject; fed back to model" },
+    { "check_id": "neg-canary-read", "phase": "simulate", "attempt": 2, "expected": "deny", "actual": "deny", "passed": true },
+    { "check_id": "pos-app-read", "phase": "simulate", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true },
+    { "check_id": "pos-app-write", "phase": "simulate", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true },
+    { "check_id": "reg-table-query", "phase": "simulate", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true },
+    { "check_id": "neg-canary-read", "phase": "live", "attempt": 2, "expected": "deny", "actual": "deny", "passed": true, "detail": "AccessDenied x3" },
+    { "check_id": "pos-app-read", "phase": "live", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true },
+    { "check_id": "pos-app-write", "phase": "live", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true },
+    { "check_id": "reg-table-query", "phase": "live", "attempt": 2, "expected": "allow", "actual": "allow", "passed": true }
+  ],
+  "exploit_replay": { "before": "success", "after": "blocked" },
+  "rationale": "The workload role used a wildcard S3 resource, granting read on every bucket including the canary. The policy now scopes S3 access to the application bucket only, preserving read/write for the app and the DynamoDB query path.",
+  "pr_url": null,
+  "error": null,
+  "started_at": "2026-10-10T11:45:02.000Z",
+  "finished_at": "2026-10-10T11:45:41.000Z"
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": "exploit-handoff/v1",
+  "finding_id": "FIND-001",
+  "title": "Excessive permissions allow access to protected data",
+  "status": "validated",
+  "severity": "high",
+
+  "scope": {
+    "environment": "authorized-lab",
+    "target_id": "lab-workload-01",
+    "authorization": "lab-owner-approved",
+    "aws_account_id": "111122223333",
+    "region": "us-west-2"
+  },
+
+  "vulnerability": {
+    "category": "cloud-iam-misconfiguration",
+    "cwe": "CWE-269",
+    "affected_component": "workload-service-role",
+    "description": "An application role has unnecessary access to a protected test resource.",
+    "root_cause_hypothesis": "Overly broad IAM permissions"
+  },
+
+  "target": {
+    "principal_arn": "arn:aws:iam::111122223333:role/lab-workload-01-role",
+    "role_name": "lab-workload-01-role",
+    "protected_resource_arn": "arn:aws:s3:::closeloop-lab-canary/canary.txt",
+    "offending_policy": {
+      "type": "inline",
+      "policy_name": "workload-app-access",
+      "statement_sid": "BroadS3Read"
+    }
+  },
+
+  "exploit": {
+    "starting_position": "Authorized test workload identity",
+    "preconditions": [
+      "Test identity is assigned to lab-workload-01",
+      "Excessive permission remains enabled"
+    ],
+    "steps": [
+      { "step": 1, "action": "Authenticate as the designated test identity", "expected_observation": "Identity is recognized" },
+      { "step": 2, "action": "Attempt access to the protected test resource", "expected_observation": "Access succeeds unexpectedly" }
+    ],
+    "success_condition": "Protected canary resource is readable",
+    "observed_result": "success",
+    "replay": {
+      "type": "aws_api",
+      "assume_role_arn": "arn:aws:iam::111122223333:role/lab-workload-01-role",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::closeloop-lab-canary/canary.txt"
+    }
+  },
+
+  "evidence": {
+    "reproduction_count": 3,
+    "successful_reproductions": 3,
+    "artifacts": ["evidence/identity.json", "evidence/access-test.json"],
+    "confidence": 0.98
+  },
+
+  "remediation": {
+    "desired_security_property": "The workload cannot read the protected resource",
+    "suggested_fix": "Remove unnecessary access permission",
+    "constraints": [
+      "Preserve legitimate workload functionality",
+      "Do not revoke unrelated permissions"
+    ]
+  },
+
+  "verification": {
+    "negative_test": "Unauthorized canary access must fail",
+    "positive_test": "Authorized application operations must succeed",
+    "regression_test": "Previously permitted legitimate workflows remain functional",
+    "checks": [
+      { "id": "neg-canary-read", "kind": "negative", "action": "s3:GetObject", "resource": "arn:aws:s3:::closeloop-lab-canary/canary.txt", "expect": "deny" },
+      { "id": "pos-app-read", "kind": "positive", "action": "s3:GetObject", "resource": "arn:aws:s3:::closeloop-lab-app/data/config.json", "expect": "allow" },
+      { "id": "pos-app-write", "kind": "positive", "action": "s3:PutObject", "resource": "arn:aws:s3:::closeloop-lab-app/uploads/test.txt", "expect": "allow" },
+      { "id": "reg-table-query", "kind": "regression", "action": "dynamodb:Query", "resource": "arn:aws:dynamodb:us-west-2:111122223333:table/closeloop-lab-orders", "expect": "allow" }
+    ]
+  },
+
+  "handoff": {
+    "owner": "remediation-agent",
+    "state": "ready-for-remediation",
+    "created_at": "2026-10-10T11:45:00.000Z"
+  }
+}

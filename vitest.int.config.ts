@@ -1,11 +1,13 @@
 import { defineConfig } from "vitest/config";
 import path from "path";
 
+// Runs only the integration tests (*.int.test.ts) against real infrastructure.
 export default defineConfig({
   test: {
     environment: "node",
-    include: ["src/**/*.test.ts"],
-    exclude: ["**/*.int.test.ts", "**/node_modules/**"],
+    include: ["src/**/*.int.test.ts"],
+    testTimeout: 30_000,
+    hookTimeout: 60_000,
   },
   resolve: {
     alias: {

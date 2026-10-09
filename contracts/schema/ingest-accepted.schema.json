@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "job_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "finding_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result_url": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "required": [
+    "job_id",
+    "finding_id",
+    "result_url"
+  ]
+}
