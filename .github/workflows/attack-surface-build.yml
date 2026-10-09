@@ -1,0 +1,36 @@
+name: attack-surface-build-and-push
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'attack-surface/storefront/**'
+      - 'attack-surface/internal-api/**'
+      - 'attack-surface/metadata/**'
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [storefront, internal-api, metadata]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push ${{ matrix.service }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ./attack-surface/${{ matrix.service }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/attack-sandbox-${{ matrix.service }}:latest

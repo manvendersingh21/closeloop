@@ -1,0 +1,87 @@
+---
+version: "2.0"
+
+# Akash attack sandbox — 3-service chain.
+# storefront is the only public service. metadata and internal-api are
+# exposed ONLY to storefront (Akash's internal network), simulating a real
+# cloud's public-edge vs. internal-services boundary.
+
+services:
+  storefront:
+    image: ghcr.io/divyanaras/attack-sandbox-storefront:latest
+    expose:
+      - port: 8080
+        as: 80
+        to:
+          - global: true
+
+  metadata:
+    image: ghcr.io/divyanaras/attack-sandbox-metadata:latest
+    env:
+      - IAM_TOKEN=949bd886391a715f5074d1c33e0195d83702d117a77285e4
+    expose:
+      - port: 4001
+        to:
+          - service: storefront
+
+  internal-api:
+    image: ghcr.io/divyanaras/attack-sandbox-internal-api:latest
+    env:
+      - IAM_TOKEN=949bd886391a715f5074d1c33e0195d83702d117a77285e4
+    expose:
+      - port: 4000
+        to:
+          - service: storefront
+
+profiles:
+  compute:
+    storefront:
+      resources:
+        cpu:
+          units: 0.5
+        memory:
+          size: 512Mi
+        storage:
+          size: 1Gi
+    metadata:
+      resources:
+        cpu:
+          units: 0.25
+        memory:
+          size: 256Mi
+        storage:
+          size: 512Mi
+    internal-api:
+      resources:
+        cpu:
+          units: 0.25
+        memory:
+          size: 256Mi
+        storage:
+          size: 512Mi
+  placement:
+    dcloud:
+      pricing:
+        storefront:
+          denom: uakt
+          amount: 1000
+        metadata:
+          denom: uakt
+          amount: 1000
+        internal-api:
+          denom: uakt
+          amount: 1000
+
+deployment:
+  storefront:
+    dcloud:
+      profile: storefront
+      count: 1
+  metadata:
+    dcloud:
+      profile: metadata
+      count: 1
+  internal-api:
+    dcloud:
+      profile: internal-api
+      count: 1

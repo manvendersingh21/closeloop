@@ -35,6 +35,26 @@ const PLAYBOOKS: Record<
     recommendedFix:
       "Use parameterized queries / bound lookups; never interpolate untrusted strings into SQL.",
   },
+  "CWE-284": {
+    rootCause:
+      "The protected namespace's NetworkPolicy ingress rule uses an empty namespaceSelector ({}), which Kubernetes treats as matching every namespace rather than the single namespace the author intended.",
+    attackPath:
+      "A pod in the public namespace curls the protected canary's Service directly; the empty selector lets the request through despite the policy's intent to restrict ingress to the internal namespace only.",
+    blastRadius:
+      "Full read access to the protected canary's data from any namespace in the cluster, bypassing the intended public → internal → protected flow entirely.",
+    recommendedFix:
+      "Set namespaceSelector to matchLabels: {kubernetes.io/metadata.name: internal} so only the internal namespace is permitted.",
+  },
+  "CWE-269": {
+    rootCause:
+      "A Role granting get/list on Secrets in the protected namespace is bound to public-app-sa, the ServiceAccount auto-mounted into the public-facing app's own pods.",
+    attackPath:
+      "Any process with access inside a public-app pod reads its own mounted ServiceAccount token and calls the Kubernetes API directly — no network path to the canary Service is needed at all.",
+    blastRadius:
+      "Direct read access to every Secret in the protected namespace via the Kubernetes API, independent of network reachability — fixing NetworkPolicy alone would not close this path.",
+    recommendedFix:
+      "Remove the Role/RoleBinding granting public-app-sa access to protected secrets; set automountServiceAccountToken: false if the token isn't needed at all.",
+  },
 };
 
 export function triageFinding(finding: Finding): TriageResult {

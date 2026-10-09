@@ -1,0 +1,73 @@
+---
+version: "2.0"
+
+# The canary-api data (customer records, escalation logging, the
+# mass-assignment loophole) and the dashboard, both public on Akash.
+# Previously these only existed in a local kind cluster. The dashboard's
+# "View Environment" tab (kubectl events) is left gracefully degraded
+# here on purpose — there's no Kubernetes cluster to watch from Akash's
+# cloud; Customer Data and Access Log are fully real and live.
+
+services:
+  canary:
+    image: ghcr.io/divyanaras/attack-sandbox-canary-api:latest
+    expose:
+      - port: 5678
+        as: 80
+        to:
+          - global: true
+          - service: dashboard
+
+  dashboard:
+    image: ghcr.io/divyanaras/attack-sandbox-dashboard:latest
+    env:
+      # Akash's internal service-name DNS (http://canary:5678) did not
+      # resolve from the dashboard container despite following the
+      # documented pattern (expose.to: service:dashboard on canary) and
+      # matching the official example exactly. Fell back to canary's own
+      # public URL, which works reliably. Replace with your canary
+      # deployment's actual ingress hostname.
+      - CANARY_URL=https://REPLACE-WITH-CANARY-PUBLIC-URL
+    expose:
+      - port: 4100
+        as: 80
+        to:
+          - global: true
+
+profiles:
+  compute:
+    canary:
+      resources:
+        cpu:
+          units: 0.3
+        memory:
+          size: 256Mi
+        storage:
+          size: 256Mi
+    dashboard:
+      resources:
+        cpu:
+          units: 0.3
+        memory:
+          size: 256Mi
+        storage:
+          size: 256Mi
+  placement:
+    dcloud:
+      pricing:
+        canary:
+          denom: uakt
+          amount: 1000
+        dashboard:
+          denom: uakt
+          amount: 1000
+
+deployment:
+  canary:
+    dcloud:
+      profile: canary
+      count: 1
+  dashboard:
+    dcloud:
+      profile: dashboard
+      count: 1

@@ -1,0 +1,64 @@
+# The protected synthetic canary. No production data — everything here is
+# fabricated for this lab.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: canary-secret
+  namespace: protected
+type: Opaque
+stringData:
+  flag: "FLAG{rbac-escape-public-app-sa-read-canary-secret}"
+  db_connection_string: "postgres://canary_app:f4k3_p4ssw0rd_not_real@canary-db.protected.svc.cluster.local:5432/customers"
+  note: "Fabricated for this lab. If this were real, an RBAC-escape attacker just got your database credential, not just a flag."
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary
+  namespace: protected
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: canary }
+  template:
+    metadata:
+      labels: { app: canary }
+    spec:
+      containers:
+        - name: canary
+          image: canary-api:local
+          imagePullPolicy: Never
+          ports: [{ containerPort: 5678 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: canary
+  namespace: protected
+spec:
+  selector: { app: canary }
+  ports: [{ port: 80, targetPort: 5678 }]
+---
+# THE BUG (K8S-01): this NetworkPolicy is INTENDED to restrict ingress to
+# the internal namespace only, but `namespaceSelector: {}` is empty — a
+# real, well-documented Kubernetes gotcha: an empty namespaceSelector
+# matches EVERY namespace, not none. The author meant to write
+# `matchLabels: {kubernetes.io/metadata.name: internal}` (see the
+# commented-out correct version below) and left it empty instead. Net
+# effect: ANY namespace, including `public`, can reach the canary.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-internal-broken
+  namespace: protected
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {}   # <-- BUG: matches all namespaces, not just "internal"
+# --- the fix, for later remediation ---
+# ingress:
+#   - from:
+#       - namespaceSelector:
+#           matchLabels: { kubernetes.io/metadata.name: internal }

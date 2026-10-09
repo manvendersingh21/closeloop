@@ -150,7 +150,121 @@ app.get("/health", (_req, res) => res.json({ ok: true }));
 module.exports = app;
 `;
 
+const netpolVulnerable = `# Intentionally vulnerable NetworkPolicy — do not deploy
+# From an authorized Kubernetes attack-sandbox lab.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-internal-broken
+  namespace: protected
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector: {}   # CWE-284: empty selector matches EVERY namespace,
+                                  # not just "internal" as intended
+`;
+
+const netpolPatched = `# CloseLoop verified patch — CWE-284
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-internal
+  namespace: protected
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: internal
+`;
+
+const rbacVulnerable = `# Intentionally vulnerable RBAC grant — do not deploy
+# From an authorized Kubernetes attack-sandbox lab.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: excessive-secret-reader
+  namespace: protected
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]   # CWE-269: public-app-sa needs none of this
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: excessive-secret-reader-binding
+  namespace: protected
+subjects:
+  - kind: ServiceAccount
+    name: public-app-sa
+    namespace: public
+roleRef:
+  kind: Role
+  name: excessive-secret-reader
+  apiGroup: rbac.authorization.k8s.io
+`;
+
+const rbacPatched = `# CloseLoop verified patch — CWE-269
+#
+# The Role and RoleBinding have been removed entirely: a public-facing
+# app's ServiceAccount should hold no permissions on Secrets in a
+# protected namespace. If a future workload genuinely needs this, grant
+# it to that workload's own narrowly-scoped ServiceAccount, not the
+# public ingress app's.
+#
+# (resources deleted — nothing to apply)
+`;
+
 export const FIXTURES: FixtureApp[] = [
+  {
+    id: "netpol-escape",
+    name: "NetworkPolicy escape",
+    description: "Empty namespaceSelector in a protected namespace's NetworkPolicy matches every namespace instead of just the intended one",
+    language: "yaml",
+    entryFile: "k8s/03-protected.yaml",
+    vulnerableSource: netpolVulnerable,
+    patchedSource: netpolPatched,
+    finding: {
+      id: "finding-netpol-001",
+      title: "NetworkPolicy namespaceSelector: {} matches all namespaces, not just internal",
+      severity: "high",
+      cwe: "CWE-284",
+      ruleId: "kubernetes.networking.security.empty-namespace-selector",
+      file: "k8s/03-protected.yaml",
+      startLine: 10,
+      endLine: 10,
+      message:
+        "namespaceSelector: {} is an empty label selector, which Kubernetes treats as matching every namespace in the cluster — not the single namespace the author intended (CWE-284).",
+      fixtureId: "netpol-escape",
+    },
+  },
+  {
+    id: "rbac-escape",
+    name: "RBAC excessive permissions",
+    description: "A public-facing app's ServiceAccount is granted get/list on Secrets in a protected namespace it has no legitimate need to read",
+    language: "yaml",
+    entryFile: "k8s/04-rbac-escape.yaml",
+    vulnerableSource: rbacVulnerable,
+    patchedSource: rbacPatched,
+    finding: {
+      id: "finding-rbac-001",
+      title: "public-app-sa bound to a Role granting secrets access in protected, bypassing NetworkPolicy entirely",
+      severity: "critical",
+      cwe: "CWE-269",
+      ruleId: "kubernetes.rbac.security.excessive-serviceaccount-permissions",
+      file: "k8s/04-rbac-escape.yaml",
+      startLine: 1,
+      endLine: 23,
+      message:
+        "public-app-sa's auto-mounted token can get/list Secrets in protected via the Kubernetes API directly — independent of any network path, so NetworkPolicy fixes alone would not close this (CWE-269).",
+      fixtureId: "rbac-escape",
+    },
+  },
   {
     id: "xss-greeter",
     name: "Greeter API",
