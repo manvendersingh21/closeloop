@@ -1,0 +1,456 @@
+{
+ "findings": [
+  {
+   "source": "manual",
+   "title": "Unauthenticated mass-assignment edit endpoint",
+   "path": "k8s/canary-api/server.js",
+   "message": "PATCH /customers/:id merges the full request body into any customer record with no auth and no field allowlist \u2014 plan, mrr_usd, risk_score all attacker-settable.",
+   "cwe": null,
+   "priority": "P2",
+   "jev_score": 2.99,
+   "jev_confidence": 0.99
+  },
+  {
+   "source": "manual",
+   "title": "Auth-bypass (Level 2) \u2192 SQLi \u2192 admin takeover",
+   "path": "deploy-l2.yaml (proxy location block)",
+   "message": "/rest/, /api/, /socket.io/ are not behind auth_basic. Verified live: unauthenticated SQLi login bypass on /rest/user/login returns a valid admin JWT.",
+   "cwe": null,
+   "priority": "P2",
+   "jev_score": 2.97,
+   "jev_confidence": 0.98
+  },
+  {
+   "source": "manual",
+   "title": "RBAC excessive permissions on public-app-sa",
+   "path": "k8s/04-rbac-escape.yaml",
+   "message": "public-app-sa's auto-mounted token can read Secrets in the protected namespace directly via the K8s API, bypassing NetworkPolicy entirely.",
+   "cwe": null,
+   "priority": "P2",
+   "jev_score": 2.86,
+   "jev_confidence": 0.87
+  },
+  {
+   "source": "manual",
+   "title": "SSRF \u2192 fake IMDS \u2192 excessive permissions chain",
+   "path": "storefront/server.js (+metadata, internal-api)",
+   "message": "SSRF in /preview pivots to internal-only metadata service, steals a fake IAM credential accepted by internal-api with no further checks \u2014 full admin takeover.",
+   "cwe": null,
+   "priority": "P2",
+   "jev_score": 2.53,
+   "jev_confidence": 0.54
+  },
+  {
+   "source": "manual",
+   "title": "IDOR on internal-api user lookup",
+   "path": "internal-api/server.js",
+   "message": "GET /internal/users/:id returns any user's fake record with no auth at all \u2014 reachable once the SSRF pivot lands you inside the internal network.",
+   "cwe": null,
+   "priority": "P3",
+   "jev_score": 2.01,
+   "jev_confidence": 0.95
+  },
+  {
+   "source": "manual",
+   "title": "NetworkPolicy empty namespaceSelector",
+   "path": "k8s/03-protected.yaml",
+   "message": "namespaceSelector: {} matches every namespace instead of just internal \u2014 lets public-namespace pods reach the protected canary over the network.",
+   "cwe": null,
+   "priority": "P3",
+   "jev_score": 1.92,
+   "jev_confidence": 0.54
+  },
+  {
+   "source": "semgrep",
+   "title": "github actions mutable action tag",
+   "path": ".github/workflows/build.yml:21",
+   "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks \u2014",
+   "cwe": [
+    "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+    "CWE-353: Missing Support for Integrity Check"
+   ],
+   "priority": "P3",
+   "jev_score": 1.68,
+   "jev_confidence": 0.23
+  },
+  {
+   "source": "semgrep",
+   "title": "github actions mutable action tag",
+   "path": ".github/workflows/build.yml:18",
+   "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks \u2014",
+   "cwe": [
+    "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+    "CWE-353: Missing Support for Integrity Check"
+   ],
+   "priority": "P3",
+   "jev_score": 1.63,
+   "jev_confidence": 0.22
+  },
+  {
+   "source": "semgrep",
+   "title": "github actions mutable action tag",
+   "path": ".github/workflows/build.yml:28",
+   "message": "GitHub Actions step uses a mutable tag or branch reference. Tags and branch names can be silently repointed by the action owner, enabling supply-chain attacks \u2014",
+   "cwe": [
+    "CWE-1357: Reliance on Insufficiently Trustworthy Component",
+    "CWE-353: Missing Support for Integrity Check"
+   ],
+   "priority": "P3",
+   "jev_score": 1.58,
+   "jev_confidence": 0.16
+  },
+  {
+   "source": "manual",
+   "title": "Bulk customer export, no rate limit",
+   "path": "k8s/canary-api/server.js",
+   "message": "GET /customers returns all 50 records in one call with no pagination or rate limiting.",
+   "cwe": null,
+   "priority": "P3",
+   "jev_score": 1.72,
+   "jev_confidence": 0.06
+  },
+  {
+   "source": "semgrep",
+   "title": "run as non root",
+   "path": "k8s/02-internal.yaml:16",
+   "message": "When running containers in Kubernetes, it's important to ensure that they  are properly secured to prevent privilege escalation attacks.  One potential vulnerab",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.37,
+   "jev_confidence": 0.64
+  },
+  {
+   "source": "semgrep",
+   "title": "run as non root",
+   "path": "k8s/01-public.yaml:22",
+   "message": "When running containers in Kubernetes, it's important to ensure that they  are properly secured to prevent privilege escalation attacks.  One potential vulnerab",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.37,
+   "jev_confidence": 0.62
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem container",
+   "path": "k8s/02-internal.yaml:18",
+   "message": "Container whoami is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify container ",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.9,
+   "jev_confidence": 0.62
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem container",
+   "path": "k8s/03-protected.yaml:28",
+   "message": "Container canary is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify container ",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.85,
+   "jev_confidence": 0.61
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy.yaml:18",
+   "message": "Service 'metadata' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.93,
+   "jev_confidence": 0.6
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy.yaml:18",
+   "message": "Service 'metadata' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify containe",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.03,
+   "jev_confidence": 0.6
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy.yaml:27",
+   "message": "Service 'internal-api' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.02,
+   "jev_confidence": 0.6
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem container",
+   "path": "k8s/01-public.yaml:25",
+   "message": "Container whoami is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify container ",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.87,
+   "jev_confidence": 0.6
+  },
+  {
+   "source": "semgrep",
+   "title": "missing user",
+   "path": "k8s/canary-api/Dockerfile:7",
+   "message": "By not specifying a USER, a program in the container may run as 'root'. This is a security hazard. If an attacker can control a process running as root, they ma",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.7,
+   "jev_confidence": 0.6
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy-l2.yaml:69",
+   "message": "Service 'juiceshop' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify contain",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.05,
+   "jev_confidence": 0.59
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy.yaml:10",
+   "message": "Service 'storefront' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.98,
+   "jev_confidence": 0.59
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy.yaml:10",
+   "message": "Service 'storefront' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify contai",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.09,
+   "jev_confidence": 0.59
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy-juiceshop.yaml:9",
+   "message": "Service 'juiceshop' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify contain",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.07,
+   "jev_confidence": 0.58
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy-l2.yaml:18",
+   "message": "Service 'proxy' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.05,
+   "jev_confidence": 0.58
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy-l2.yaml:69",
+   "message": "Service 'juiceshop' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.91,
+   "jev_confidence": 0.58
+  },
+  {
+   "source": "semgrep",
+   "title": "missing user",
+   "path": "internal-api/Dockerfile:7",
+   "message": "By not specifying a USER, a program in the container may run as 'root'. This is a security hazard. If an attacker can control a process running as root, they ma",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.67,
+   "jev_confidence": 0.58
+  },
+  {
+   "source": "semgrep",
+   "title": "missing user",
+   "path": "metadata/Dockerfile:7",
+   "message": "By not specifying a USER, a program in the container may run as 'root'. This is a security hazard. If an attacker can control a process running as root, they ma",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.64,
+   "jev_confidence": 0.58
+  },
+  {
+   "source": "semgrep",
+   "title": "no new privileges",
+   "path": "deploy-juiceshop.yaml:9",
+   "message": "Service 'juiceshop' allows for privilege escalation via setuid or setgid binaries. Add 'no-new-privileges:true' in 'security_opt' to prevent this.",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 0.77,
+   "jev_confidence": 0.57
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy-l2.yaml:18",
+   "message": "Service 'proxy' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify container f",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.08,
+   "jev_confidence": 0.57
+  },
+  {
+   "source": "semgrep",
+   "title": "missing user",
+   "path": "storefront/Dockerfile:7",
+   "message": "By not specifying a USER, a program in the container may run as 'root'. This is a security hazard. If an attacker can control a process running as root, they ma",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.64,
+   "jev_confidence": 0.57
+  },
+  {
+   "source": "semgrep",
+   "title": "run as non root",
+   "path": "k8s/03-protected.yaml:26",
+   "message": "When running containers in Kubernetes, it's important to ensure that they  are properly secured to prevent privilege escalation attacks.  One potential vulnerab",
+   "cwe": [
+    "CWE-250: Execution with Unnecessary Privileges"
+   ],
+   "priority": "P4",
+   "jev_score": 0.44,
+   "jev_confidence": 0.56
+  },
+  {
+   "source": "semgrep",
+   "title": "writable filesystem service",
+   "path": "deploy.yaml:27",
+   "message": "Service 'internal-api' is running with a writable root filesystem. This may allow malicious applications to download and run additional payloads, or modify cont",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.14,
+   "jev_confidence": 0.55
+  },
+  {
+   "source": "semgrep",
+   "title": "allow privilege escalation no securitycontext",
+   "path": "k8s/01-public.yaml:25",
+   "message": "In Kubernetes, each pod runs in its own isolated environment with its own set of security policies. However, certain container images may contain `setuid` or `s",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.06,
+   "jev_confidence": 0.54
+  },
+  {
+   "source": "semgrep",
+   "title": "raw html format",
+   "path": "storefront/server.js:41",
+   "message": "User data flows into the host portion of this manually-constructed HTML. This can introduce a Cross-Site-Scripting (XSS) vulnerability if this comes from user-p",
+   "cwe": [
+    "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+   ],
+   "priority": "P4",
+   "jev_score": 1.26,
+   "jev_confidence": 0.54
+  },
+  {
+   "source": "semgrep",
+   "title": "allow privilege escalation no securitycontext",
+   "path": "k8s/02-internal.yaml:18",
+   "message": "In Kubernetes, each pod runs in its own isolated environment with its own set of security policies. However, certain container images may contain `setuid` or `s",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.26,
+   "jev_confidence": 0.5
+  },
+  {
+   "source": "semgrep",
+   "title": "allow privilege escalation no securitycontext",
+   "path": "k8s/03-protected.yaml:28",
+   "message": "In Kubernetes, each pod runs in its own isolated environment with its own set of security policies. However, certain container images may contain `setuid` or `s",
+   "cwe": [
+    "CWE-732: Incorrect Permission Assignment for Critical Resource"
+   ],
+   "priority": "P4",
+   "jev_score": 1.21,
+   "jev_confidence": 0.49
+  },
+  {
+   "source": "semgrep",
+   "title": "direct response write",
+   "path": "storefront/server.js:39",
+   "message": "Detected directly writing to a Response object from user-defined input. This bypasses any HTML escaping and may expose your application to a Cross-Site-scriptin",
+   "cwe": [
+    "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+   ],
+   "priority": "P4",
+   "jev_score": 1.25,
+   "jev_confidence": 0.31
+  },
+  {
+   "source": "semgrep",
+   "title": "direct response write",
+   "path": "storefront/server.js:60",
+   "message": "Detected directly writing to a Response object from user-defined input. This bypasses any HTML escaping and may expose your application to a Cross-Site-scriptin",
+   "cwe": [
+    "CWE-79: Improper Neutralization of Input During Web Page Generation ('Cross-site Scripting')"
+   ],
+   "priority": "P4",
+   "jev_score": 1.35,
+   "jev_confidence": 0.27
+  }
+ ],
+ "counts": {
+  "P2": 4,
+  "P3": 6,
+  "P4": 28
+ },
+ "total": 38,
+ "classifier": "jev-latest"
+}

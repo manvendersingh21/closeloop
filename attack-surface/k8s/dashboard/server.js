@@ -58,5 +58,34 @@ app.get("/api/customers", async (req, res) => {
   }
 });
 
+// --- Escalation log (Server-Sent Events, bridging canary-api's /logs) ---
+app.get("/api/logs/stream", async (req, res) => {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.flushHeaders();
+
+  let since = 0;
+  let closed = false;
+  req.on("close", () => (closed = true));
+
+  // replay recent history once, then poll canary-api for new entries
+  while (!closed) {
+    try {
+      const upstream = await fetch(`${CANARY_URL}/logs?since=${since}`);
+      if (upstream.ok) {
+        const { logs, lastId } = await upstream.json();
+        for (const entry of logs) {
+          res.write(`data: ${JSON.stringify(entry)}\n\n`);
+        }
+        since = lastId;
+      }
+    } catch {
+      // canary-api unreachable (port-forward down) — just keep retrying
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+});
+
 const PORT = process.env.DASHBOARD_API_PORT || 4100;
 app.listen(PORT, () => console.log(`dashboard API listening on :${PORT}`));

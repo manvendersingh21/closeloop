@@ -11,7 +11,7 @@ detection is `walmsley-lab/cyber-defense`, remediation is a PR into
   boundary as part of the attack surface. The live Akash deployment
   currently runs OWASP Juice Shop instead (`deploy-juiceshop.yaml`) as the
   simpler, zero-build attack vector; the custom chain below is still here,
-  buildable via `../.github/workflows/attack-surface-build.yml` → `ghcr.io`.
+  buildable via `.github/workflows/build.yml` → `ghcr.io`.
 - **`k8s/` — a real local Kubernetes cluster** (`kind` + Calico), with a
   NetworkPolicy misconfiguration and an RBAC over-permission as two
   independent escape paths, plus a live Svelte dashboard. See
@@ -67,7 +67,7 @@ curl "$BASE/preview?url=http://internal-api:4000/internal/admin%3Ftoken%3D<TOKEN
 
 ## Deploy
 
-Build happens in CI (`../.github/workflows/attack-surface-build.yml` → `ghcr.io`, no local
+Build happens in CI (`.github/workflows/build.yml` → `ghcr.io`, no local
 Docker needed). Then on [console.akash.network](https://console.akash.network):
 paste `deploy.yaml`, pick a provider, deploy. Only `storefront` is public.
 

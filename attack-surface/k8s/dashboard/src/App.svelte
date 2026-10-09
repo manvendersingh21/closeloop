@@ -1,8 +1,17 @@
 <script>
   import EnvironmentFeed from "./lib/EnvironmentFeed.svelte";
   import CustomerData from "./lib/CustomerData.svelte";
+  import AccessLog from "./lib/AccessLog.svelte";
+  import Triage from "./lib/Triage.svelte";
 
-  let tab = $state("environment"); // "environment" | "customers"
+  let tab = $state("environment"); // environment | customers | log | triage
+
+  const TABS = [
+    { id: "environment", label: "View Environment" },
+    { id: "customers", label: "Customer Data" },
+    { id: "log", label: "Access Log" },
+    { id: "triage", label: "Vulnerability Triage" },
+  ];
 </script>
 
 <main>
@@ -18,19 +27,22 @@
 
   <section class="tabs-section">
     <div class="tabs" role="tablist">
-      <button role="tab" aria-selected={tab === "environment"} class:active={tab === "environment"} onclick={() => (tab = "environment")}>
-        View Environment
-      </button>
-      <button role="tab" aria-selected={tab === "customers"} class:active={tab === "customers"} onclick={() => (tab = "customers")}>
-        Customer Data
-      </button>
+      {#each TABS as t}
+        <button role="tab" aria-selected={tab === t.id} class:active={tab === t.id} onclick={() => (tab = t.id)}>
+          {t.label}
+        </button>
+      {/each}
     </div>
 
     <div class="tab-body">
       {#if tab === "environment"}
         <EnvironmentFeed />
-      {:else}
+      {:else if tab === "customers"}
         <CustomerData />
+      {:else if tab === "log"}
+        <AccessLog />
+      {:else}
+        <Triage />
       {/if}
     </div>
   </section>
@@ -53,7 +65,7 @@
   h1 { font-size: 32px; margin: 8px 0 12px; letter-spacing: -.01em; }
   .dek { color: #93a5a0; line-height: 1.55; margin: 0; }
 
-  .tabs { display: flex; gap: 6px; border-bottom: 1px solid #2a3a37; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 6px; border-bottom: 1px solid #2a3a37; margin-bottom: 20px; flex-wrap: wrap; }
   .tabs button {
     font: inherit; font-size: 14px; padding: 10px 16px; background: none; border: none;
     color: #93a5a0; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px;
