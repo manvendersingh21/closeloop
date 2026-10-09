@@ -1,0 +1,41 @@
+---
+# CloseLoop lab target on Akash. Authorized demo only.
+# Replace <WORKLOAD_TOKEN> with a random value (openssl rand -hex 24) before deploying,
+# and share it with the team privately. POLICY_JSON below is the vulnerable baseline:
+# "BroadRead" grants data:read on "*", which exposes canary/secret.txt.
+version: "2.0"
+
+services:
+  lab-api:
+    image: ghcr.io/manvendersingh21/closeloop-lab-api:0.1.0
+    env:
+      - WORKLOAD_TOKEN=<WORKLOAD_TOKEN>
+      - 'POLICY_JSON={"statements":[{"sid":"BroadRead","effect":"allow","actions":["data:read"],"resources":["*"]},{"sid":"OrdersWrite","effect":"allow","actions":["orders:write"],"resources":["orders"]}]}'
+    expose:
+      - port: 8080
+        as: 80
+        to:
+          - global: true
+
+profiles:
+  compute:
+    lab-api:
+      resources:
+        cpu:
+          units: 0.5
+        memory:
+          size: 512Mi
+        storage:
+          size: 512Mi
+  placement:
+    dcloud:
+      pricing:
+        lab-api:
+          denom: uakt
+          amount: 10000
+
+deployment:
+  lab-api:
+    dcloud:
+      profile: lab-api
+      count: 1
