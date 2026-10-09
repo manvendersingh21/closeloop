@@ -9,7 +9,7 @@ export type RemediationStatus =
   | "verified"
   | "failed";
 
-export type CweId = "CWE-79" | "CWE-22" | "CWE-89";
+export type CweId = "CWE-79" | "CWE-22" | "CWE-89" | "CWE-284" | "CWE-269";
 
 export interface Finding {
   id: string;
@@ -83,7 +83,7 @@ export interface FixtureApp {
   id: string;
   name: string;
   description: string;
-  language: "javascript";
+  language: "javascript" | "yaml";
   entryFile: string;
   vulnerableSource: string;
   patchedSource: string;

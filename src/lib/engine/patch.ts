@@ -34,6 +34,10 @@ const RATIONALES: Record<Finding["cwe"], string> = {
     "Added traversal guards, forced basename resolution under ROOT, and containment checks before fs.readFileSync.",
   "CWE-89":
     "Replaced concatenated SQL with a parameterized-style lookupUser() that compares usernames without interpreting attacker SQL.",
+  "CWE-284":
+    "Scoped the NetworkPolicy's namespaceSelector to matchLabels: {kubernetes.io/metadata.name: internal}, closing the empty-selector gap while preserving internal → protected connectivity.",
+  "CWE-269":
+    "Removed the Role and RoleBinding granting public-app-sa access to protected/secrets — the public app never needed this permission in the first place.",
 };
 
 export async function generatePatch(finding: Finding): Promise<PatchResult> {

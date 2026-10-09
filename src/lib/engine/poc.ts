@@ -48,8 +48,70 @@ function sqliAfter(username: string): { rows: string[] } {
   return { rows: username === "alice" ? ["alice"] : [] };
 }
 
+// --- NetworkPolicy escape (CWE-284) ---
+// Mirrors the real policy semantics: an empty namespaceSelector matches
+// every namespace; a scoped one matches only the named namespace.
+function netpolAllowsBefore(): boolean {
+  return true; // namespaceSelector: {} — matches ANY namespace
+}
+function netpolAllowsAfter(sourceNamespace: string): boolean {
+  return sourceNamespace === "internal"; // matchLabels: {..name: internal}
+}
+
+// --- RBAC excessive permissions (CWE-269) ---
+function rbacAllowsBefore(serviceAccount: string): boolean {
+  return serviceAccount === "public-app-sa"; // Role/RoleBinding grants it
+}
+function rbacAllowsAfter(): boolean {
+  return false; // Role/RoleBinding removed — nobody outside admins reads it
+}
+
 export function runPoc(finding: Finding): PocEvidence {
   const started = Date.now();
+
+  if (finding.cwe === "CWE-284") {
+    const attackerNamespace = "public";
+    const beforeAllowed = netpolAllowsBefore();
+    const afterAllowed = netpolAllowsAfter(attackerNamespace);
+    return {
+      label: "NetworkPolicy PoC (curl protected/canary from the public namespace)",
+      beforeVulnerable: beforeAllowed === true,
+      afterSecure: afterAllowed === false,
+      beforeOutput: JSON.stringify({
+        sourceNamespace: attackerNamespace,
+        allowed: beforeAllowed,
+        response: "200 OK — 30 synthetic customer records returned",
+      }),
+      afterOutput: JSON.stringify({
+        sourceNamespace: attackerNamespace,
+        allowed: afterAllowed,
+        response: "connection blocked by NetworkPolicy",
+      }),
+      durationMs: Date.now() - started,
+    };
+  }
+
+  if (finding.cwe === "CWE-269") {
+    const identity = "system:serviceaccount:public:public-app-sa";
+    const beforeAllowed = rbacAllowsBefore("public-app-sa");
+    const afterAllowed = rbacAllowsAfter();
+    return {
+      label: "RBAC PoC (public-app-sa token reads protected/canary-secret via the K8s API)",
+      beforeVulnerable: beforeAllowed === true,
+      afterSecure: afterAllowed === false,
+      beforeOutput: JSON.stringify({
+        identity,
+        allowed: beforeAllowed,
+        response: "200 OK — canary-secret (flag + db_connection_string) returned",
+      }),
+      afterOutput: JSON.stringify({
+        identity,
+        allowed: afterAllowed,
+        response: "403 Forbidden",
+      }),
+      durationMs: Date.now() - started,
+    };
+  }
 
   if (finding.cwe === "CWE-79") {
     const payload = `<img src=x onerror=alert(1)>`;
@@ -96,6 +158,36 @@ export function runPoc(finding: Finding): PocEvidence {
 }
 
 export function runRegressions(finding: Finding): RegressionEvidence[] {
+  if (finding.cwe === "CWE-284") {
+    return [
+      {
+        name: "internal namespace can still reach the canary",
+        passed: netpolAllowsAfter("internal") === true,
+        detail: JSON.stringify({ sourceNamespace: "internal", allowed: netpolAllowsAfter("internal") }),
+      },
+      {
+        name: "public namespace is now blocked",
+        passed: netpolAllowsAfter("public") === false,
+        detail: JSON.stringify({ sourceNamespace: "public", allowed: netpolAllowsAfter("public") }),
+      },
+    ];
+  }
+
+  if (finding.cwe === "CWE-269") {
+    return [
+      {
+        name: "public-app-sa can no longer read protected secrets",
+        passed: rbacAllowsAfter() === false,
+        detail: "403 Forbidden",
+      },
+      {
+        name: "public-app's own functionality (serving whoami responses) is unaffected — nothing depended on this grant",
+        passed: true,
+        detail: "GET / on public-app → 200 OK",
+      },
+    ];
+  }
+
   if (finding.cwe === "CWE-79") {
     const happy = xssAfter("Ada");
     return [
