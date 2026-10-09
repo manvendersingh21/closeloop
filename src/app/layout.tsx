@@ -1,17 +1,17 @@
 import type { Metadata } from "next";
-import { Syne, Source_Sans_3, IBM_Plex_Mono } from "next/font/google";
+import { Bungee, Plus_Jakarta_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
-  variable: "--font-syne",
+const bungee = Bungee({
+  variable: "--font-bungee",
   subsets: ["latin"],
-  weight: ["500", "600", "700", "800"],
+  weight: ["400"],
 });
 
-const sourceSans = Source_Sans_3({
-  variable: "--font-source-sans",
+const jakarta = Plus_Jakarta_Sans({
+  variable: "--font-jakarta",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const ibmMono = IBM_Plex_Mono({
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${sourceSans.variable} ${ibmMono.variable} h-full antialiased`}
+      className={`${bungee.variable} ${jakarta.variable} ${ibmMono.variable} h-full antialiased`}
     >
       <body className="relative min-h-full flex flex-col">{children}</body>
     </html>
