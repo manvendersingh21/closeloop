@@ -1,0 +1,89 @@
+{
+  "schema_version": "exploit-handoff/v1",
+  "finding_id": "FIND-002",
+  "title": "Workload policy exposes protected canary data on Akash lab-api",
+  "status": "validated",
+  "severity": "high",
+
+  "scope": {
+    "environment": "authorized-lab",
+    "target_id": "akash-lab-api",
+    "authorization": "lab-owner-approved",
+    "aws_account_id": "000000000000",
+    "region": "akash"
+  },
+
+  "vulnerability": {
+    "category": "cloud-iam-misconfiguration",
+    "cwe": "CWE-269",
+    "affected_component": "lab-api POLICY_JSON",
+    "description": "The workload token's policy grants data:read on every resource, including canary/secret.txt.",
+    "root_cause_hypothesis": "Wildcard resource in statement BroadRead"
+  },
+
+  "target": {
+    "principal_arn": "arn:aws:iam::000000000000:role/lab-workload-01",
+    "role_name": "lab-workload-01",
+    "protected_resource_arn": "arn:aws:s3:::akash-lab/canary/secret.txt",
+    "offending_policy": {
+      "type": "inline",
+      "policy_name": "POLICY_JSON",
+      "statement_sid": "BroadRead"
+    }
+  },
+
+  "akash": {
+    "dseq": "1234567",
+    "service": "lab-api",
+    "policy_env_var": "POLICY_JSON",
+    "base_url": "https://lab-api.example.provider.akash.pub"
+  },
+
+  "exploit": {
+    "starting_position": "Authorized lab workload token",
+    "preconditions": ["Workload token is valid", "BroadRead statement is deployed"],
+    "steps": [
+      { "step": 1, "action": "Call GET /whoami with the workload token", "expected_observation": "Identity lab-workload-01 is recognized" },
+      { "step": 2, "action": "Call GET /data/canary/secret.txt", "expected_observation": "200 with canary content" }
+    ],
+    "success_condition": "Protected canary resource is readable",
+    "observed_result": "success",
+    "replay": {
+      "type": "aws_api",
+      "assume_role_arn": "arn:aws:iam::000000000000:role/lab-workload-01",
+      "action": "data:read",
+      "resource": "canary/secret.txt"
+    }
+  },
+
+  "evidence": {
+    "reproduction_count": 3,
+    "successful_reproductions": 3,
+    "artifacts": ["evidence/whoami.json", "evidence/canary-read.json"],
+    "confidence": 0.98
+  },
+
+  "remediation": {
+    "desired_security_property": "The workload cannot read canary/*",
+    "suggested_fix": "Scope data:read to app/*",
+    "constraints": ["Preserve app reads and order writes", "Do not change OrdersWrite"]
+  },
+
+  "verification": {
+    "negative_test": "Canary read must return 403",
+    "positive_test": "App config read must return 200",
+    "regression_test": "Order creation must return 201",
+    "checks": [
+      { "id": "neg-canary-read", "kind": "negative", "action": "data:read", "resource": "canary/secret.txt", "expect": "deny" },
+      { "id": "pos-app-read", "kind": "positive", "action": "data:read", "resource": "app/config.json", "expect": "allow" },
+      { "id": "pos-orders-write", "kind": "positive", "action": "orders:write", "resource": "orders", "expect": "allow" },
+      { "id": "reg-catalog-read", "kind": "regression", "action": "data:read", "resource": "app/catalog.json", "expect": "allow" }
+    ]
+  },
+
+  "handoff": {
+    "owner": "remediation-agent",
+    "state": "ready-for-remediation",
+    "created_at": "2026-10-09T21:00:00.000Z"
+  }
+}

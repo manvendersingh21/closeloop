@@ -6,6 +6,8 @@ import { z } from "zod";
 const Arn = z.string().regex(/^arn:aws[a-z-]*:[a-z0-9-]+:[a-z0-9-]*:\d{0,12}:.+$/, "must be an AWS ARN");
 const IamAction = z.string().regex(/^[a-z0-9-]+:[A-Za-z0-9*]+$/, "must look like service:Action");
 const Decision = z.enum(["allow", "deny"]);
+/** An AWS ARN, or a lab resource path such as "canary/secret.txt" (Akash lab). */
+const CheckResource = z.string().min(1);
 
 /** One machine-executable check. CloseLoop runs every check in simulation and live. */
 export const VerificationCheck = z.object({
@@ -13,7 +15,7 @@ export const VerificationCheck = z.object({
   kind: z.enum(["negative", "positive", "regression"]),
   description: z.string().optional(),
   action: IamAction,
-  resource: Arn,
+  resource: CheckResource,
   expect: Decision,
 });
 
@@ -72,7 +74,7 @@ export const ExploitHandoffV1 = z.object({
       type: z.literal("aws_api"),
       assume_role_arn: Arn,
       action: IamAction,
-      resource: Arn,
+      resource: CheckResource,
     }),
   }),
 
@@ -102,6 +104,16 @@ export const ExploitHandoffV1 = z.object({
     .refine((v) => v.checks.some((c) => c.kind === "positive" && c.expect === "allow"), {
       message: "needs at least one positive check expecting allow",
     }),
+
+  /** Optional (v1, additive): where the lab runs when it is on Akash instead of AWS. */
+  akash: z
+    .object({
+      dseq: z.string().regex(/^\d+$/),
+      service: z.string().min(1),
+      policy_env_var: z.string().min(1).default("POLICY_JSON"),
+      base_url: z.url(),
+    })
+    .optional(),
 
   handoff: z.object({
     owner: z.literal("remediation-agent"),
