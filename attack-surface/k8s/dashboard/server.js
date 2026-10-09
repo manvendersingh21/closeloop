@@ -5,13 +5,26 @@
 // alongside this).
 import express from "express";
 import cors from "cors";
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
+import path from "path";
+import { fileURLToPath } from "url";
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 app.use(cors());
 
 const CTX = "kind-attack-sandbox";
 const CANARY_URL = process.env.CANARY_URL || "http://localhost:5678";
+
+// On Akash there's no Kubernetes cluster to query at all — kubectl won't
+// even be on the image. Check once at boot rather than failing per-request.
+let KUBECTL_AVAILABLE = false;
+try {
+  execSync("kubectl version --client", { stdio: "ignore" });
+  KUBECTL_AVAILABLE = true;
+} catch {
+  KUBECTL_AVAILABLE = false;
+}
 
 // --- Live environment feed (Server-Sent Events) ---
 app.get("/api/events", (req, res) => {
@@ -21,6 +34,12 @@ app.get("/api/events", (req, res) => {
   res.flushHeaders();
 
   const send = (line) => res.write(`data: ${JSON.stringify({ line, ts: new Date().toISOString() })}\n\n`);
+
+  if (!KUBECTL_AVAILABLE) {
+    send("[dashboard] kubectl unavailable in this deployment — this view only works when the dashboard runs against a live kind cluster locally. Customer Data and Access Log still reflect the real canary-api.");
+    return; // leave the connection open, idle; nothing more to stream
+  }
+
   send(`[dashboard] watching all namespaces on context ${CTX}...`);
 
   const kubectl = spawn("kubectl", [
@@ -87,5 +106,10 @@ app.get("/api/logs/stream", async (req, res) => {
   }
 });
 
-const PORT = process.env.DASHBOARD_API_PORT || 4100;
-app.listen(PORT, () => console.log(`dashboard API listening on :${PORT}`));
+// --- Serve the built Svelte app (production: one container, one port) ---
+const distDir = path.join(__dirname, "dist");
+app.use(express.static(distDir));
+app.get(/^(?!\/api).*/, (req, res) => res.sendFile(path.join(distDir, "index.html")));
+
+const PORT = process.env.DASHBOARD_API_PORT || process.env.PORT || 4100;
+app.listen(PORT, () => console.log(`dashboard listening on :${PORT} (kubectl available: ${KUBECTL_AVAILABLE})`));
