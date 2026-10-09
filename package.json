@@ -13,7 +13,9 @@
     "contract:schema": "node scripts/export-contract-schema.mts",
     "db:migrate": "node scripts/migrate-clickhouse.mjs",
     "guild:setup": "node scripts/guild-setup.mjs",
-    "test:live": "CLOSELOOP_LIVE_E2E=1 vitest run -c vitest.int.config.ts src/lib/remediate/executor.live.int.test.ts"
+    "test:live": "CLOSELOOP_LIVE_E2E=1 vitest run -c vitest.int.config.ts src/lib/remediate/executor.live.int.test.ts",
+    "lab:reset": "node scripts/lab-reset.mjs",
+    "demo": "node scripts/demo.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1148.0",

@@ -25,7 +25,7 @@ Return the full corrected policy. Rules:
 - Change ONLY the offending statement. Copy every other statement exactly.
 - Only narrow: split the offending statement, narrow its Resource ARNs, or drop actions. Never add actions, resources or wildcards the original did not grant. No NotAction, NotResource or Principal.
 - Version must be "2012-10-17".
-Return policy_json as a JSON string of the full policy document, summary as short bullet strings, rationale as 2-3 sentences for a PR description.`;
+Return ONLY a JSON object with keys policy_json (stringified full policy document), summary (string array), rationale (string). No markdown fences.`;
 
 const RESPONSE_SCHEMA = {
   name: "policy_patch",
@@ -42,7 +42,18 @@ const RESPONSE_SCHEMA = {
   },
 };
 
-async function openaiPatch({ handoff: h, policyBefore, feedback }: PatchInput, key: string): Promise<PatchDraft> {
+function parsePatchContent(content: string): PatchDraft {
+  const trimmed = content.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  const out = JSON.parse(trimmed) as { policy_json: string | PolicyDocument; summary: string[]; rationale: string };
+  const policy =
+    typeof out.policy_json === "string" ? normalizePolicy(JSON.parse(out.policy_json)) : normalizePolicy(out.policy_json);
+  return { policyAfter: policy, summary: out.summary, rationale: out.rationale };
+}
+
+async function chatPatch(
+  { handoff: h, policyBefore, feedback }: PatchInput,
+  opts: { url: string; key: string; model: string; structured: boolean; label: string },
+): Promise<PatchDraft> {
   const user = {
     finding: {
       id: h.finding_id,
@@ -59,28 +70,30 @@ async function openaiPatch({ handoff: h, policyBefore, feedback }: PatchInput, k
     previous_attempt_rejected_because: feedback ?? [],
   };
 
-  const res = await fetch(OPENAI_URL, {
+  const body: Record<string, unknown> = {
+    model: opts.model,
+    temperature: 0,
+    messages: [
+      { role: "system", content: SYSTEM },
+      { role: "user", content: JSON.stringify(user, null, 2) },
+    ],
+  };
+  if (opts.structured) {
+    body.response_format = { type: "json_schema", json_schema: RESPONSE_SCHEMA };
+  }
+
+  const res = await fetch(opts.url, {
     method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-4.1",
-      temperature: 0,
-      response_format: { type: "json_schema", json_schema: RESPONSE_SCHEMA },
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: JSON.stringify(user, null, 2) },
-      ],
-    }),
-    signal: AbortSignal.timeout(45_000),
+    headers: { Authorization: `Bearer ${opts.key}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(90_000),
   });
-  if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(await res.text()).slice(0, 300)}`);
+  if (!res.ok) throw new Error(`${opts.label} ${res.status}: ${(await res.text()).slice(0, 300)}`);
 
   const data = (await res.json()) as { choices?: { message?: { content?: string; refusal?: string } }[] };
   const msg = data.choices?.[0]?.message;
-  if (!msg?.content) throw new Error(`OpenAI returned no content${msg?.refusal ? `: ${msg.refusal}` : ""}`);
-
-  const out = JSON.parse(msg.content) as { policy_json: string; summary: string[]; rationale: string };
-  return { policyAfter: normalizePolicy(JSON.parse(out.policy_json)), summary: out.summary, rationale: out.rationale };
+  if (!msg?.content) throw new Error(`${opts.label} returned no content${msg?.refusal ? `: ${msg.refusal}` : ""}`);
+  return parsePatchContent(msg.content);
 }
 
 /**
@@ -118,8 +131,56 @@ function deterministicPatch({ handoff: h, policyBefore }: PatchInput): PatchDraf
 }
 
 export async function proposePatch(input: PatchInput): Promise<PatchDraft> {
-  const key = process.env.OPENAI_API_KEY;
-  if (key && process.env.CLOSELOOP_PATCHER !== "mock") return openaiPatch(input, key);
   if (isMock() || process.env.CLOSELOOP_PATCHER === "mock") return deterministicPatch(input);
-  throw new Error("OPENAI_API_KEY is not set");
+
+  const openaiKey = process.env.OPENAI_API_KEY?.trim();
+  const akashKey = process.env.AKASH_LLM_API_KEY?.trim();
+  const akashBase = (process.env.AKASH_LLM_BASE_URL || "").replace(/\/$/, "");
+  const akashModel = process.env.AKASH_LLM_MODEL || "qwen-abliterated";
+
+  const errors: string[] = [];
+
+  if (openaiKey && process.env.CLOSELOOP_PATCHER !== "akash") {
+    try {
+      return await chatPatch(input, {
+        url: OPENAI_URL,
+        key: openaiKey,
+        model: process.env.OPENAI_MODEL || "gpt-4.1",
+        structured: true,
+        label: "OpenAI",
+      });
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (akashKey && akashBase) {
+    const akashUrl = akashBase.endsWith("/chat/completions")
+      ? akashBase
+      : akashBase.endsWith("/v1")
+        ? `${akashBase}/chat/completions`
+        : `${akashBase}/v1/chat/completions`;
+    try {
+      return await chatPatch(input, {
+        url: akashUrl,
+        key: akashKey,
+        model: akashModel,
+        structured: false,
+        label: "AkashLLM",
+      });
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  if (process.env.CLOSELOOP_PATCHER === "deterministic" || errors.length > 0) {
+    // Last resort so a bad cloud key does not block an otherwise live demo.
+    try {
+      return deterministicPatch(input);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  throw new Error(errors[0] || "no patcher available: set OPENAI_API_KEY or AKASH_LLM_*");
 }
