@@ -1,0 +1,43 @@
+# The internal mock backend. public-app is INTENDED to reach this one —
+# it's the legitimate path, kept so there's a working regression test
+# ("verify no legitimate workflow was broken") once the escape is fixed.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internal-backend
+  namespace: internal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: internal-backend }
+  template:
+    metadata:
+      labels: { app: internal-backend }
+    spec:
+      containers:
+        - name: whoami
+          image: traefik/whoami
+          ports: [{ containerPort: 80 }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: internal-backend
+  namespace: internal
+spec:
+  selector: { app: internal-backend }
+  ports: [{ port: 80, targetPort: 80 }]
+---
+# The CORRECT policy for this namespace: only public-app may reach it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-only-public-app
+  namespace: internal
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: public }

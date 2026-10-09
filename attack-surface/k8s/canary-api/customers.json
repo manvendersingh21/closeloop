@@ -1,0 +1,272 @@
+[
+  {
+    "id": 1,
+    "name": "Arjun Chen",
+    "email": "arjun.chen@example.test",
+    "account_number": "ACC-126225",
+    "card_last4": "5506",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 2,
+    "name": "Mateo Chen",
+    "email": "mateo.chen@example.test",
+    "account_number": "ACC-809570",
+    "card_last4": "9935",
+    "plan": "free",
+    "mrr_usd": 499
+  },
+  {
+    "id": 3,
+    "name": "Priya Alvarez",
+    "email": "priya.alvarez@example.test",
+    "account_number": "ACC-198246",
+    "card_last4": "4582",
+    "plan": "pro",
+    "mrr_usd": 1200
+  },
+  {
+    "id": 4,
+    "name": "Zara Alvarez",
+    "email": "zara.alvarez@example.test",
+    "account_number": "ACC-688508",
+    "card_last4": "4257",
+    "plan": "enterprise",
+    "mrr_usd": 99
+  },
+  {
+    "id": 5,
+    "name": "Nadia Tanaka",
+    "email": "nadia.tanaka@example.test",
+    "account_number": "ACC-391704",
+    "card_last4": "1106",
+    "plan": "pro",
+    "mrr_usd": 499
+  },
+  {
+    "id": 6,
+    "name": "Rosa Silva",
+    "email": "rosa.silva@example.test",
+    "account_number": "ACC-263032",
+    "card_last4": "4527",
+    "plan": "pro",
+    "mrr_usd": 29
+  },
+  {
+    "id": 7,
+    "name": "Sam Hassan",
+    "email": "sam.hassan@example.test",
+    "account_number": "ACC-201414",
+    "card_last4": "6881",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 8,
+    "name": "Hugo Natarajan",
+    "email": "hugo.natarajan@example.test",
+    "account_number": "ACC-865179",
+    "card_last4": "8527",
+    "plan": "free",
+    "mrr_usd": 499
+  },
+  {
+    "id": 9,
+    "name": "Sam Weiss",
+    "email": "sam.weiss@example.test",
+    "account_number": "ACC-407419",
+    "card_last4": "6925",
+    "plan": "pro",
+    "mrr_usd": 29
+  },
+  {
+    "id": 10,
+    "name": "Priya Rossi",
+    "email": "priya.rossi@example.test",
+    "account_number": "ACC-910620",
+    "card_last4": "5741",
+    "plan": "free",
+    "mrr_usd": 99
+  },
+  {
+    "id": 11,
+    "name": "Wes Chen",
+    "email": "wes.chen@example.test",
+    "account_number": "ACC-498591",
+    "card_last4": "5554",
+    "plan": "enterprise",
+    "mrr_usd": 99
+  },
+  {
+    "id": 12,
+    "name": "Lena Dube",
+    "email": "lena.dube@example.test",
+    "account_number": "ACC-472528",
+    "card_last4": "4432",
+    "plan": "pro",
+    "mrr_usd": 29
+  },
+  {
+    "id": 13,
+    "name": "Zara Kim",
+    "email": "zara.kim@example.test",
+    "account_number": "ACC-660086",
+    "card_last4": "5010",
+    "plan": "pro",
+    "mrr_usd": 499
+  },
+  {
+    "id": 14,
+    "name": "Maya Silva",
+    "email": "maya.silva@example.test",
+    "account_number": "ACC-771088",
+    "card_last4": "4598",
+    "plan": "pro",
+    "mrr_usd": 0
+  },
+  {
+    "id": 15,
+    "name": "Ife Natarajan",
+    "email": "ife.natarajan@example.test",
+    "account_number": "ACC-944151",
+    "card_last4": "6168",
+    "plan": "enterprise",
+    "mrr_usd": 99
+  },
+  {
+    "id": 16,
+    "name": "Sam Haddad",
+    "email": "sam.haddad@example.test",
+    "account_number": "ACC-694731",
+    "card_last4": "6155",
+    "plan": "pro",
+    "mrr_usd": 499
+  },
+  {
+    "id": 17,
+    "name": "Maya Bianchi",
+    "email": "maya.bianchi@example.test",
+    "account_number": "ACC-249811",
+    "card_last4": "5339",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 18,
+    "name": "Vera Weiss",
+    "email": "vera.weiss@example.test",
+    "account_number": "ACC-665158",
+    "card_last4": "5304",
+    "plan": "enterprise",
+    "mrr_usd": 499
+  },
+  {
+    "id": 19,
+    "name": "Theo Rossi",
+    "email": "theo.rossi@example.test",
+    "account_number": "ACC-245051",
+    "card_last4": "9348",
+    "plan": "enterprise",
+    "mrr_usd": 29
+  },
+  {
+    "id": 20,
+    "name": "Yuki Natarajan",
+    "email": "yuki.natarajan@example.test",
+    "account_number": "ACC-214975",
+    "card_last4": "3504",
+    "plan": "pro",
+    "mrr_usd": 499
+  },
+  {
+    "id": 21,
+    "name": "Zara Okafor",
+    "email": "zara.okafor@example.test",
+    "account_number": "ACC-503457",
+    "card_last4": "7252",
+    "plan": "enterprise",
+    "mrr_usd": 1200
+  },
+  {
+    "id": 22,
+    "name": "Diego Weiss",
+    "email": "diego.weiss@example.test",
+    "account_number": "ACC-112038",
+    "card_last4": "2876",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 23,
+    "name": "Avery Novak",
+    "email": "avery.novak@example.test",
+    "account_number": "ACC-555884",
+    "card_last4": "3591",
+    "plan": "enterprise",
+    "mrr_usd": 0
+  },
+  {
+    "id": 24,
+    "name": "Vera Silva",
+    "email": "vera.silva@example.test",
+    "account_number": "ACC-624902",
+    "card_last4": "3927",
+    "plan": "free",
+    "mrr_usd": 99
+  },
+  {
+    "id": 25,
+    "name": "Freya Osei",
+    "email": "freya.osei@example.test",
+    "account_number": "ACC-738551",
+    "card_last4": "4258",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 26,
+    "name": "Yuki Kim",
+    "email": "yuki.kim@example.test",
+    "account_number": "ACC-665579",
+    "card_last4": "9689",
+    "plan": "free",
+    "mrr_usd": 99
+  },
+  {
+    "id": 27,
+    "name": "Omar Alvarez",
+    "email": "omar.alvarez@example.test",
+    "account_number": "ACC-217301",
+    "card_last4": "6947",
+    "plan": "pro",
+    "mrr_usd": 99
+  },
+  {
+    "id": 28,
+    "name": "Priya Rossi",
+    "email": "priya.rossi@example.test",
+    "account_number": "ACC-694916",
+    "card_last4": "2290",
+    "plan": "free",
+    "mrr_usd": 499
+  },
+  {
+    "id": 29,
+    "name": "Freya Okafor",
+    "email": "freya.okafor@example.test",
+    "account_number": "ACC-897549",
+    "card_last4": "9727",
+    "plan": "pro",
+    "mrr_usd": 29
+  },
+  {
+    "id": 30,
+    "name": "Clara Reyes",
+    "email": "clara.reyes@example.test",
+    "account_number": "ACC-676510",
+    "card_last4": "3705",
+    "plan": "pro",
+    "mrr_usd": 1200
+  }
+]

@@ -1,0 +1,18 @@
+# Authorized security-research lab. Mirrors walmsley-lab/cyber-defense PR #1's
+# proposed Kubernetes lab spec: a public app, an internal backend, and a
+# protected synthetic canary, with intentionally permissive NetworkPolicy
+# and RBAC variants creating an unexpected path to the canary.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: public
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: internal
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: protected

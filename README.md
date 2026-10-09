@@ -6,6 +6,13 @@ Verified autonomous remediation for the Cyberdefense Hackathon #SFTechWeek.
 
 Frontier AI can draft patches — but the Berkeley/Google survey [*Frontier AI’s Impact on the Cybersecurity Landscape*](https://arxiv.org/pdf/2504.05408) shows **remediation deployment is empty** (0 benchmarks, 0 systems). CloseLoop closes that gap: every fix must pass a differential PoC (exploit works *before*, fails *after*), regressions, and a deployable CI gate.
 
+One leg of a four-part team project (attack surface / attack / detection /
+remediation — this repo is remediation). **[`attack-surface/`](attack-surface/)**
+is the other half: a real Akash deployment and a real local Kubernetes
+cluster, with live-exploited vulnerabilities. The `netpol-escape` and
+`rbac-escape` fixtures below came directly from it — real findings,
+exploited against a live cluster, not hypothetical.
+
 ## Demo (2 minutes)
 
 ```bash

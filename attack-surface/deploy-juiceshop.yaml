@@ -1,0 +1,38 @@
+---
+version: "2.0"
+
+# Single attack vector: OWASP Juice Shop. Public image, no build needed —
+# sidesteps the GHCR/package-scope issue entirely. Real, known vulnerability
+# classes (XSS, SQLi, broken auth, IDOR, admin takeover) out of the box.
+
+services:
+  juiceshop:
+    image: bkimminich/juice-shop
+    expose:
+      - port: 3000
+        as: 80
+        to:
+          - global: true
+
+profiles:
+  compute:
+    juiceshop:
+      resources:
+        cpu:
+          units: 0.5
+        memory:
+          size: 536Mi
+        storage:
+          size: 1Gi
+  placement:
+    dcloud:
+      pricing:
+        juiceshop:
+          denom: uakt
+          amount: 1000
+
+deployment:
+  juiceshop:
+    dcloud:
+      profile: juiceshop
+      count: 1

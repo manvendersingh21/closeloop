@@ -1,0 +1,30 @@
+# THE BUG (K8S-02): public-app-sa's token (auto-mounted into every pod in
+# the public-app Deployment) is granted `get`/`list` on secrets in the
+# `protected` namespace. A public-facing app's ServiceAccount should need
+# NONE of this. This is a second, independent escape path: even if
+# NetworkPolicy were fixed, anyone who compromises the public-app pod can
+# call the Kubernetes API directly with this mounted token and read
+# canary-secret without ever touching the canary Service over the network.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: excessive-secret-reader
+  namespace: protected
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: excessive-secret-reader-binding
+  namespace: protected
+subjects:
+  - kind: ServiceAccount
+    name: public-app-sa
+    namespace: public
+roleRef:
+  kind: Role
+  name: excessive-secret-reader
+  apiGroup: rbac.authorization.k8s.io
